@@ -35,6 +35,7 @@ use OpenApi\Attributes as OA;
         'two_factor_confirmed_at' => ['type' => 'string', 'description' => 'The date when the user two factor was confirmed.'],
         'force_password_reset' => ['type' => 'boolean', 'description' => 'The flag to force the user to reset the password.'],
         'marketing_emails' => ['type' => 'boolean', 'description' => 'The flag to receive marketing emails.'],
+        'is_oauth_only' => ['type' => 'boolean', 'description' => 'The flag indicating the user can only authenticate via OAuth.'],
     ],
 )]
 class User extends Authenticatable implements SendsEmail
@@ -55,6 +56,7 @@ class User extends Authenticatable implements SendsEmail
         'force_password_reset' => 'boolean',
         'show_boarding' => 'boolean',
         'email_change_code_expires_at' => 'datetime',
+        'is_oauth_only' => 'boolean',
     ];
 
     /**
@@ -473,5 +475,13 @@ class User extends Authenticatable implements SendsEmail
     public function hasPassword(): bool
     {
         return ! empty($this->password);
+    }
+
+    /**
+     * Determine if the user is restricted to OAuth authentication only.
+     */
+    public function isOAuthOnly(): bool
+    {
+        return (bool) $this->is_oauth_only;
     }
 }
