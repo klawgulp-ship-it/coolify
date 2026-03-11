@@ -1,4 +1,4 @@
-<?php
+<?php;
 
 namespace App\Actions\Fortify;
 
@@ -12,11 +12,11 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 class CreateNewUser implements CreatesNewUsers
 {
     /**
-     * Validate and create a newly registered user.
-     *
-     * @param  array<string, string>  $input
-     */
-    public function create(array $input): User
+    * Validate and create a newly registered user.
+    *
+    * @param  array<string, string>  $input
+    */
+    public function create(array $input): User;
     {
         $settings = instanceSettings();
         if (! $settings->is_registration_enabled) {
@@ -35,8 +35,6 @@ class CreateNewUser implements CreatesNewUsers
         ])->validate();
 
         if (User::count() == 0) {
-            // If this is the first user, make them the root user
-            // Team is already created in the database/seeders/ProductionSeeder.php
             $user = User::create([
                 'id' => 0,
                 'name' => $input['name'],
@@ -45,7 +43,6 @@ class CreateNewUser implements CreatesNewUsers
             ]);
             $team = $user->teams()->first();
 
-            // Disable registration after first user is created
             $settings = instanceSettings();
             $settings->is_registration_enabled = false;
             $settings->save();
@@ -62,7 +59,6 @@ class CreateNewUser implements CreatesNewUsers
                 $user->markEmailAsVerified();
             }
         }
-        // Set session variable
         session(['currentTeam' => $user->currentTeam = $team]);
 
         return $user;
