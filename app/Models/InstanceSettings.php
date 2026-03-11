@@ -2,123 +2,36 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Once;
-use Spatie\Url\Url;
+use OpenApi\Attributes as OA;
 
+#[OA\Schema(
+    description: 'Instance Settings',
+    type: 'object',
+    properties: [
+        'id' => ['type' => 'integer', 'description' => 'The instance settings identifier in the database.'],
+        'fqdn' => ['type' => 'string', 'description' => 'The instance FQDN.'],
+        'is_registration_enabled' => ['type' => 'boolean', 'description' => 'Whether registration is enabled.'],
+        'is_registration_enabled_for_oauth' => ['type' => 'boolean', 'description' => 'Whether registration via OAuth2 is enabled even when general registration is disabled.'],
+        'is_oauth_only_registration' => ['type' => 'boolean', 'description' => 'Whether users are restricted to OAuth2 only (no password login).'],
+    ],
+)]
 class InstanceSettings extends Model
 {
+    protected $table = 'instance_settings';
+
     protected $guarded = [];
 
     protected $casts = [
-        'smtp_enabled' => 'boolean',
-        'smtp_from_address' => 'encrypted',
-        'smtp_from_name' => 'encrypted',
-        'smtp_recipients' => 'encrypted',
-        'smtp_host' => 'encrypted',
-        'smtp_port' => 'integer',
-        'smtp_username' => 'encrypted',
-        'smtp_password' => 'encrypted',
-        'smtp_timeout' => 'integer',
-
-        'resend_enabled' => 'boolean',
-        'resend_api_key' => 'encrypted',
-
-        'allowed_ip_ranges' => 'array',
+        'is_registration_enabled' => 'boolean',
+        'is_registration_enabled_for_oauth' => 'boolean',
+        'is_oauth_only_registration' => 'boolean',
+        'is_smtp_enabled' => 'boolean',
+        'is_resend_enabled' => 'boolean',
+        'smtp_ssl' => 'boolean',
+        'smtp_tls' => 'boolean',
         'is_auto_update_enabled' => 'boolean',
-        'auto_update_frequency' => 'string',
-        'update_check_frequency' => 'string',
-        'sentinel_token' => 'encrypted',
-        'is_wire_navigate_enabled' => 'boolean',
+        'is_dns_validation_enabled' => 'boolean',
+        'do_not_track' => 'boolean',
     ];
-
-    protected static function booted(): void
-    {
-        static::updated(function ($settings) {
-            // Clear once() cache so subsequent calls get fresh data
-            Once::flush();
-
-            // Clear trusted hosts cache when FQDN changes
-            if ($settings->wasChanged('fqdn')) {
-                \Cache::forget('instance_settings_fqdn_host');
-            }
-        });
-    }
-
-    public function fqdn(): Attribute
-    {
-        return Attribute::make(
-            set: function ($value) {
-                if ($value) {
-                    $url = Url::fromString($value);
-                    $host = $url->getHost();
-
-                    return $url->getScheme().'://'.$host;
-                }
-            }
-        );
-    }
-
-    public function updateCheckFrequency(): Attribute
-    {
-        return Attribute::make(
-            set: function ($value) {
-                return translate_cron_expression($value);
-            },
-            get: function ($value) {
-                return translate_cron_expression($value);
-            }
-        );
-    }
-
-    public function autoUpdateFrequency(): Attribute
-    {
-        return Attribute::make(
-            set: function ($value) {
-                return translate_cron_expression($value);
-            },
-            get: function ($value) {
-                return translate_cron_expression($value);
-            }
-        );
-    }
-
-    public static function get()
-    {
-        return once(fn () => InstanceSettings::findOrFail(0));
-    }
-
-    // public function getRecipients($notification)
-    // {
-    //     $recipients = data_get($notification, 'emails', null);
-    //     if (is_null($recipients) || $recipients === '') {
-    //         return [];
-    //     }
-
-    //     return explode(',', $recipients);
-    // }
-
-    public function getTitleDisplayName(): string
-    {
-        $instanceName = $this->instance_name;
-        if (! $instanceName) {
-            return '';
-        }
-
-        return "[{$instanceName}]";
-    }
-
-    // public function helperVersion(): Attribute
-    // {
-    //     return Attribute::make(
-    //         get: function ($value) {
-    //             if (isDev()) {
-    //                 return 'latest';
-    //             }
-
-    //             return $value;
-    //         }
-    //     );
-    // }
 }
