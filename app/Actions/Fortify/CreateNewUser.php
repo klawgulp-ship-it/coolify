@@ -1,4 +1,4 @@
-<?php
+<?php;
 
 namespace App\Actions\Fortify;
 
@@ -12,15 +12,18 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 class CreateNewUser implements CreatesNewUsers
 {
     /**
-     * Validate and create a newly registered user.
-     *
-     * @param  array<string, string>  $input
-     */
-    public function create(array $input): User
+    * Validate and create a newly registered user.
+    *
+    * @param  array<string, string>  $input
+    */
+    public function create(array $input): User;
     {
         $settings = instanceSettings();
         if (! $settings->is_registration_enabled) {
             abort(403);
+        }
+        if ($settings->is_oauth_only_registration) {
+            abort(403, 'Registration is only allowed via OAuth2.');
         }
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],
