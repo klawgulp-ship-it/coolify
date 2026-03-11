@@ -19,9 +19,18 @@ class CreateNewUser implements CreatesNewUsers
     public function create(array $input): User
     {
         $settings = instanceSettings();
+        $isOAuthRegistration = ! empty($input['oauth_id']);
+
         if (! $settings->is_registration_enabled) {
-            abort(403);
+            if (! $isOAuthRegistration || ! $settings->is_oauth_only_registration_enabled) {
+                abort(403);
+            }
         }
+
+        $passwordRules = $isOAuthRegistration
+            ? ['nullable']
+            : ['required', Password::defaults(), 'confirmed'];
+
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
@@ -31,18 +40,28 @@ class CreateNewUser implements CreatesNewUsers
                 'max:255',
                 Rule::unique(User::class),
             ],
-            'password' => ['required', Password::defaults(), 'confirmed'],
+            'password' => $passwordRules,
         ])->validate();
 
         if (User::count() == 0) {
             // If this is the first user, make them the root user
             // Team is already created in the database/seeders/ProductionSeeder.php
-            $user = User::create([
+            $userData = [
                 'id' => 0,
                 'name' => $input['name'],
                 'email' => $input['email'],
-                'password' => Hash::make($input['password']),
-            ]);
+                'password' => isset($input['password']) ? Hash::make($input['password']) : null,
+            ];
+
+            if ($isOAuthRegistration) {
+                $userData['oauth_id'] = $input['oauth_id'];
+                $userData['oauth_provider'] = $input['oauth_provider'] ?? null;
+                if ($settings->is_oauth_only_registration_enabled) {
+                    $userData['is_oauth_only'] = true;
+                }
+            }
+
+            $user = User::create($userData);
             $team = $user->teams()->first();
 
             // Disable registration after first user is created
@@ -50,11 +69,21 @@ class CreateNewUser implements CreatesNewUsers
             $settings->is_registration_enabled = false;
             $settings->save();
         } else {
-            $user = User::create([
+            $userData = [
                 'name' => $input['name'],
                 'email' => $input['email'],
-                'password' => Hash::make($input['password']),
-            ]);
+                'password' => isset($input['password']) ? Hash::make($input['password']) : null,
+            ];
+
+            if ($isOAuthRegistration) {
+                $userData['oauth_id'] = $input['oauth_id'];
+                $userData['oauth_provider'] = $input['oauth_provider'] ?? null;
+                if ($settings->is_oauth_only_registration_enabled) {
+                    $userData['is_oauth_only'] = true;
+                }
+            }
+
+            $user = User::create($userData);
             $team = $user->teams()->first();
             if (isCloud()) {
                 $user->sendVerificationEmail();
